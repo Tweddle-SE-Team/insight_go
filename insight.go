@@ -1,8 +1,8 @@
-// Package le_go provides a Golang client library for logging to
-// logentries.com over a TCP connection.
+// Package insight_go provides a Golang client library for logging to
+// insightops over a TCP connection.
 //
 // it uses an access token for sending log events.
-package le_go
+package insight_go
 
 import (
 	"crypto/tls"
@@ -26,18 +26,20 @@ type Logger struct {
 	mu     sync.Mutex
 	prefix string
 	token  string
+	region string
 	buf    []byte
 }
 
 const lineSep = "\n"
 
 // Connect creates a new Logger instance and opens a TCP connection to
-// logentries.com,
-// The token can be generated at logentries.com by adding a new log,
+// insightops,
+// The token can be generated at insightops by adding a new log,
 // choosing manual configuration and token based TCP connection.
-func Connect(token string) (*Logger, error) {
+func Connect(region, token string) (*Logger, error) {
 	logger := Logger{
-		token: token,
+		token:  token,
+		region: region,
 	}
 
 	if err := logger.openConnection(); err != nil {
@@ -47,7 +49,7 @@ func Connect(token string) (*Logger, error) {
 	return &logger, nil
 }
 
-// Close closes the TCP connection to logentries.com
+// Close closes the TCP connection to insightops
 func (logger *Logger) Close() error {
 	if logger.conn != nil {
 		return logger.conn.Close()
@@ -56,9 +58,10 @@ func (logger *Logger) Close() error {
 	return nil
 }
 
-// Opens a TCP connection to logentries.com
+// Opens a TCP connection to insightops
 func (logger *Logger) openConnection() error {
-	conn, err := tls.Dial("tcp", "data.logentries.com:443", &tls.Config{})
+	endpoint := fmt.Sprintf("%s.data.logs.insight.rapid7.com:443", logger.region)
+	conn, err := tls.Dial("tcp", endpoint, &tls.Config{})
 	if err != nil {
 		return err
 	}
@@ -66,7 +69,7 @@ func (logger *Logger) openConnection() error {
 	return nil
 }
 
-// It returns if the TCP connection to logentries.com is open
+// It returns if the TCP connection to insightops is open
 func (logger *Logger) isOpenConnection() bool {
 	if logger.conn == nil {
 		return false
@@ -90,7 +93,7 @@ func (logger *Logger) isOpenConnection() bool {
 	return false
 }
 
-// It ensures that the TCP connection to logentries.com is open.
+// It ensures that the TCP connection to insightops is open.
 // If the connection is closed, a new one is opened.
 func (logger *Logger) ensureOpenConnection() error {
 	if !logger.isOpenConnection() {
@@ -183,7 +186,7 @@ func (logger *Logger) SetPrefix(prefix string) {
 	logger.prefix = prefix
 }
 
-// Write writes a bytes array to the Logentries TCP connection,
+// Write writes a bytes array to the InsightOPS TCP connection,
 // it adds the access token and prefix and also replaces
 // line breaks with the unicode \u2028 character
 func (logger *Logger) Write(p []byte) (n int, err error) {

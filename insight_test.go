@@ -1,4 +1,4 @@
-package le_go
+package insight_go
 
 import (
 	"fmt"
